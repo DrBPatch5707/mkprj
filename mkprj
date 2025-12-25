@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+
+import argparse
+import sys
+from main import main
+
+def create_parser():
+	parser = argparse.ArgumentParser(
+		prog="mkprj",
+		description="Creates simple projects."
+	)
+	# Example argument; remove or modify as needed:
+	parser.add_argument(
+		"name",
+		help="Project name",
+		default=None,
+	)
+
+	profiles = {
+			'cpp',
+			"cpp-cmake",
+			'c',
+			'python',
+			'shell-script',
+			'java'
+		}
+	parser.add_argument(
+    "profile",
+    metavar="profile",
+    choices=profiles,
+    help=f"Project profile: ex. {profiles}"
+)
+
+	
+	parser.add_argument(
+		"path",
+		help="Path to project directory, to be created",
+		default=".",
+		nargs="?",
+	)
+
+	parser.add_argument(
+		"--no-git",
+		help="Does not initialize the project as a git repo",
+		action="store_true"
+	)
+	
+	return parser
+
+def preMain():
+	argv = sys.argv[1:]
+	parser = create_parser()
+	args = parser.parse_args(argv)
+
+	main(args)
+
+	
+
+if __name__ == "__main__":
+	preMain()
+
