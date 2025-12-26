@@ -3,7 +3,7 @@ CXX      := g++
 CXXFLAGS := -std=c++20 -Wall -Wextra -O2 -Iinclude
 
 # Dependency generation flags: create .d files next to .o files in $(BUILD_DIR)
-DEPFLAGS := -MT $@ -MMD -MP -MF $(BUILD_DIR)/$*.d
+DEPFLAGS = -MT $@ -MMD -MP -MF $(BUILD_DIR)/$*.d
 
 # Directories
 SRC_DIR   := src
