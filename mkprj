@@ -20,10 +20,6 @@ def create_parser():
 	profiles = {
 			'cpp',
 			"cpp-cmake",
-			'c',
-			'python',
-			'shell-script',
-			'java'
 		}
 	parser.add_argument(
     "profile",
