@@ -1,0 +1,29 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(main LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_executable(main)
+
+target_compile_options(main PRIVATE -Wall -Wextra -O2)
+target_include_directories(main PRIVATE "${CMAKE_SOURCE_DIR}/include")
+
+file(GLOB APP_SOURCES CONFIGURE_DEPENDS
+  "${CMAKE_SOURCE_DIR}/src/*.cpp"
+)
+
+target_sources(main PRIVATE ${APP_SOURCES})
+
+set_target_properties(main PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+add_custom_target(run
+  COMMAND "$<TARGET_FILE:main>"
+  DEPENDS main
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  USES_TERMINAL
+)

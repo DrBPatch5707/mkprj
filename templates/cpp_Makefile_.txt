@@ -1,0 +1,46 @@
+# Compiler and flags
+CXX      := g++
+CXXFLAGS := -std=c++20 -Wall -Wextra -O2 -Iinclude
+
+# Dependency generation flags: create .d files next to .o files in $(BUILD_DIR)
+DEPFLAGS := -MT $@ -MMD -MP -MF $(BUILD_DIR)/$*.d
+
+# Directories
+SRC_DIR   := src
+INC_DIR   := include
+BUILD_DIR := build
+
+# Target executable name
+TARGET := app
+
+# Source and object files
+SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+OBJS := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+
+# Default target
+all: $(TARGET)
+
+# Link step
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) $^ -o $@
+
+# Compile step
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(DEPFLAGS)
+
+# Ensure build directory exists
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# Run the program
+run: $(TARGET)
+	./$(TARGET)
+
+# Clean build artifacts
+clean:
+	rm -rf $(BUILD_DIR) $(TARGET)
+
+.PHONY: all run clean
+
+# Include generated dependency files so header changes trigger rebuilds
+-include $(OBJS:.o=.d)

@@ -3,6 +3,8 @@ import os
 import sys
 import subprocess
 
+TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+
 def Info(msg):
 	print(f"[INFO] {msg}")
 
@@ -12,82 +14,32 @@ def Error(msg):
 def Warn(msg):
 	print(f"[WARNING] {msg}")
 
-
 def abort():
 	if not hasattr(abort, "aborted"):
 		abort.aborted = 0
 		Info("aborting...")
 	sys.exit()
 
-def init_git(path):
+def create_include_dir(pth):
+	Info("Creating include directory")
+	include_path = os.path.join(pth, "include")
 	try:
-		result = subprocess.run(["git", "init", path], capture_output=True, text=True)
-		Info("")
-		print(result.stdout)
-		print(result.stderr)
-	except subprocess.CalledProcessError as e:
-		Error(f"Git initalization of repo {path} failed do to error code {e.returncode}")
-
-def cpp_profile(args):
-	pth = os.path.join(os.path.abspath(args.path), args.name)
-	Info("Creating Makefile...")
-	try:
-		with open(os.path.join(pth, "Makefile"), "w") as file:
-
-			contents = r"""
-# Compiler and flags
-CXX      := g++
-CXXFLAGS := -std=c++20 -Wall -Wextra -O2 -Iinclude
-
-# Directories
-SRC_DIR   := src
-INC_DIR   := include
-BUILD_DIR := build
-
-# Target executable name
-TARGET := app
-
-# Source and object files
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
-
-# Default target
-all: $(TARGET)
-
-# Link step
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $^ -o $@
-
-# Compile step
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Ensure build directory exists
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
-# Run the program
-run: $(TARGET)
-	./$(TARGET)
-
-# Clean build artifacts
-clean:
-	rm -rf $(BUILD_DIR) $(TARGET)
-
-.PHONY: all run clean
-"""
-
-			file.write(contents)
-
-			file.close()
+			os.mkdir(include_path)
+	except FileExistsError:
+		Error("Somehow the include directory already exist; I don't know man:/")
+		abort()
 	except FileNotFoundError:
-		Error("Could not create Makefile")
+		Error("You shouldn't be here")
+		abort()
 	except OSError as ec:
-		Error(f"The host operating system rased error code {ec.errno}")
+		Error(f"The host operating system has returned error code {ec.errno}")
 		abort()
 	except:
 		abort()
+	return include_path
 	
+
+def create_src_dir(pth):
 	Info("Creating src directory")
 	src_path = os.path.join(pth, "src")
 	try:
@@ -99,45 +51,67 @@ clean:
 		Error("You shouldn't be here")
 		abort()
 	except OSError as ec:
-		print(f"[INFO] The host operating system has returned error code {ec.errno}")
+		Error(f"The host operating system has returned error code {ec.errno}")
 		abort()
 	except:
+		Error("unknown")
 		abort()
+	return src_path
 
-	Info("Creating include directory")
-	include_path = os.path.join(pth, "include")
+def init_git(path):
 	try:
-			os.mkdir(include_path)
-	except FileExistsError:
-		Error("Somehow the src directory already exist; I don't know man:/")
-		abort()
-	except FileNotFoundError:
-		Error("You shouldn't be here")
+		result = subprocess.run(["git", "init", path], capture_output=True, text=True, check=True)
+		Info("")
+		print(result.stdout)
+		print(result.stderr)
+	except subprocess.CalledProcessError as e:
+		Error(f"Git initalization of repo {path} failed do to error code {e.returncode}")
+
+def cpp_profile(args):
+	pth = os.path.join(os.path.abspath(args.path), args.name)
+	try:
+		with open(f"{TEMPLATE_DIR}/cpp_Makefile_.txt", "r") as file:
+			contents = file.read()
+	except FileNotFoundError as e:
+		Error(f"Could not read the Makefile template: {e}")
 		abort()
 	except OSError as ec:
-		print(f"[INFO] The host operating system has returned error code {ec.errno}")
+		Error(f"The host operating system raised error code {ec.errno}")
+		abort()
+	except Exception as e:
+		Error(f"Unexpected error reading Makefile template: {e}")
+		abort()
+	Info("Creating Makefile...")
+	try:
+		with open(os.path.join(pth, "Makefile"), "w") as file:
+			file.write(contents)
+	except FileNotFoundError:
+		Error("Could not create Makefile")
+	except OSError as ec:
+		Error(f"The host operating system rased error code {ec.errno}")
 		abort()
 	except:
 		abort()
-	
+	src_path = create_src_dir(pth)
+	create_include_dir(pth)
+	try:
+		with open(f"{TEMPLATE_DIR}/cpp_main.cpp_.txt", "r") as file:
+			contents = file.read()
+	except FileNotFoundError:
+		Error("Could not read the main.cpp template")
+		abort()
+	except OSError as ec:
+		Error(f"The host operating system raised error code {ec.errno}")
+		abort()
+	except Exception as e:
+		Error(f"Unexpected error reading main.cpp template: {e}")
+		abort()
 	Info("Creating main.cpp...")
 	try:
 		with open(os.path.join(src_path, "main.cpp"), "w") as file:
-
-			contents = r"""
-#include <iostream>
-
-int main() {
-	std::cout << "Hello, world" << std::endl;
-	return 0;
-}
-"""
-
 			file.write(contents)
-
-			file.close()
 	except FileNotFoundError:
-		Error("Could not create Makefile")
+		Error("Could not create main.cpp")
 	except OSError as ec:
 		Error(f"The host operating system rased error code {ec.errno}")
 		abort()
@@ -147,45 +121,23 @@ int main() {
 
 def cpp_cmake_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
-	Info("Creating CMakeLists.txt...")
+	contents = ""
+	try:
+		with open(f"{TEMPLATE_DIR}/cpp-cmake_CMakeLists.txt_.txt", "r") as file:
+			contents = file.read()
+	except FileNotFoundError:
+		Error("Could not read the CMakeLists.txt template")
+		abort()
+	except OSError as ec:
+		Error(f"The host operating system raised error code {ec.errno}")
+		abort()
+	except Exception as e:
+		Error(f"Unexpected error reading CMakeLists.txt template: {e}")
+		abort()
+
 	try:
 		with open(os.path.join(pth, "CMakeLists.txt"), "w") as file:
-
-			contents = r"""
-cmake_minimum_required(VERSION 3.20)
-
-project(main LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-add_executable(main)
-
-target_compile_options(main PRIVATE -Wall -Wextra -O2)
-target_include_directories(main PRIVATE "${CMAKE_SOURCE_DIR}/include")
-
-file(GLOB APP_SOURCES CONFIGURE_DEPENDS
-  "${CMAKE_SOURCE_DIR}/src/*.cpp"
-)
-
-target_sources(main PRIVATE ${APP_SOURCES})
-
-set_target_properties(main PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-
-add_custom_target(run
-  COMMAND "$<TARGET_FILE:main>"
-  DEPENDS main
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-  USES_TERMINAL
-)
-"""
-
 			file.write(contents)
-
-			file.close()
 	except FileNotFoundError:
 		Error("Could not create CMakeLists.txt")
 	except OSError as ec:
@@ -194,56 +146,29 @@ add_custom_target(run
 	except:
 		abort()
 	
-	Info("Creating src directory")
-	src_path = os.path.join(pth, "src")
+	src_path = create_src_dir(pth)
+	create_include_dir(pth)	
 	try:
-			os.mkdir(src_path)
-	except FileExistsError:
-		Error("Somehow the src directory already exist; I don't know man:/")
-		abort()
+		with open(f"{TEMPLATE_DIR}/cpp-cmake_main.cpp_.txt", "r") as file:
+			contents = file.read()
 	except FileNotFoundError:
-		Error("You shouldn't be here")
+		Error("Could not read the main.cpp template")
 		abort()
 	except OSError as ec:
-		print(f"[INFO] The host operating system has returned error code {ec.errno}")
+		Error(f"The host operating system raised error code {ec.errno}")
 		abort()
-	except:
+	except Exception as e:
+		Error(f"Unexpected error reading main.cpp template: {e}")
 		abort()
-
-	Info("Creating include directory")
-	include_path = os.path.join(pth, "include")
-	try:
-			os.mkdir(include_path)
-	except FileExistsError:
-		Error("Somehow the src directory already exist; I don't know man:/")
-		abort()
-	except FileNotFoundError:
-		Error("You shouldn't be here")
-		abort()
-	except OSError as ec:
-		print(f"[INFO] The host operating system has returned error code {ec.errno}")
-		abort()
-	except:
-		abort()
-	
 	Info("Creating main.cpp...")
 	try:
 		with open(os.path.join(src_path, "main.cpp"), "w") as file:
-
-			contents = r"""
-#include <iostream>
-
-int main() {
-	std::cout << "Hello, world" << std::endl;
-	return 0;
-}
-"""
 
 			file.write(contents)
 
 			file.close()
 	except FileNotFoundError:
-		Error("Could not create Makefile")
+		Error("Could not create main.cpp")
 	except OSError as ec:
 		Error(f"The host operating system rased error code {ec.errno}")
 		abort()
@@ -252,27 +177,27 @@ int main() {
 
 
 def main(args):
-	print(f"[INFO] Project name: {args.name}")
+	Info(f"Project name: {args.name}")
 	path = os.path.join(os.path.abspath(args.path), args.name)
-	print(f"[INFO] Path: {path}")
+	Info(f"Path: {path}")
 	try:
 		if os.path.isfile(path):
-			print("[ERROR] Directory can not be a file")
+			Error("Directory can not be a file")
 			abort()
 		if os.path.exists(path):
-			print("[ERROR] Directory already exist")
+			Error("Directory already exist")
 			abort()
 		Info(f"Creating directory {path}")
-		os.makedirs(path, exist_ok=True)
+		os.makedirs(path)
 	except FileExistsError:
-		print(f"[ERROR] {path} already exists")
+		Error(f"{path} already exists")
 		abort()
 	except FileNotFoundError:
 		parent = os.path.dirname(path)
-		print(f"[ERROR] Parent directory does not exist: {parent}")
+		Error(f"Parent directory does not exist: {parent}")
 		abort()
 	except OSError as ec:
-		print(f"[INFO] The host operating system has returned error code {ec.errno}")
+		Error(f"The host operating system has returned error code {ec.errno}")
 		abort()
 	except:
 		abort()
