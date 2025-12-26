@@ -67,114 +67,60 @@ def init_git(path):
 	except subprocess.CalledProcessError as e:
 		Error(f"Git initalization of repo {path} failed do to error code {e.returncode}")
 
+def copy_template(inPath, outPath):
+	try:
+		with open(inPath, "r") as file:
+			contents = file.read()
+	except FileNotFoundError:
+		Error(f"Could not read the {inPath} template")
+		abort()
+	except OSError as ec:
+		Error(f"The host operating system raised error code {ec.errno}")
+		abort()
+	except Exception as e:
+		Error(f"Unexpected error reading {inPath} template: {e}")
+		abort()
+	Info(f"Creating {outPath}...")
+	try:
+		with open(outPath, "w") as file:
+			file.write(contents)
+	except FileNotFoundError:
+		Error(f"Could not create {outPath}")
+		abort()
+	except OSError as ec:
+		Error(f"The host operating system rased error code {ec.errno}")
+		abort()
+	except Exception as e:
+		Error(f"Unexpected error writing {outPath}: {e}")
+		abort()
+
 def cpp_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
-	try:
-		with open(f"{TEMPLATE_DIR}/cpp_Makefile_.txt", "r") as file:
-			contents = file.read()
-	except FileNotFoundError as e:
-		Error(f"Could not read the Makefile template: {e}")
-		abort()
-	except OSError as ec:
-		Error(f"The host operating system raised error code {ec.errno}")
-		abort()
-	except Exception as e:
-		Error(f"Unexpected error reading Makefile template: {e}")
-		abort()
-	Info("Creating Makefile...")
-	try:
-		with open(os.path.join(pth, "Makefile"), "w") as file:
-			file.write(contents)
-	except FileNotFoundError:
-		Error("Could not create Makefile")
-	except OSError as ec:
-		Error(f"The host operating system rased error code {ec.errno}")
-		abort()
-	except:
-		abort()
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp_Makefile_.txt"),
+		outPath=os.path.join(pth, "Makefile")
+	)
 	src_path = create_src_dir(pth)
 	create_include_dir(pth)
-	try:
-		with open(f"{TEMPLATE_DIR}/cpp_main.cpp_.txt", "r") as file:
-			contents = file.read()
-	except FileNotFoundError:
-		Error("Could not read the main.cpp template")
-		abort()
-	except OSError as ec:
-		Error(f"The host operating system raised error code {ec.errno}")
-		abort()
-	except Exception as e:
-		Error(f"Unexpected error reading main.cpp template: {e}")
-		abort()
-	Info("Creating main.cpp...")
-	try:
-		with open(os.path.join(src_path, "main.cpp"), "w") as file:
-			file.write(contents)
-	except FileNotFoundError:
-		Error("Could not create main.cpp")
-	except OSError as ec:
-		Error(f"The host operating system rased error code {ec.errno}")
-		abort()
-	except:
-		abort()
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp_main.cpp_.txt"),
+		outPath=os.path.join(src_path, "main.cpp")
+	)
 
 
 def cpp_cmake_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
-	contents = ""
-	try:
-		with open(f"{TEMPLATE_DIR}/cpp-cmake_CMakeLists.txt_.txt", "r") as file:
-			contents = file.read()
-	except FileNotFoundError:
-		Error("Could not read the CMakeLists.txt template")
-		abort()
-	except OSError as ec:
-		Error(f"The host operating system raised error code {ec.errno}")
-		abort()
-	except Exception as e:
-		Error(f"Unexpected error reading CMakeLists.txt template: {e}")
-		abort()
-
-	try:
-		with open(os.path.join(pth, "CMakeLists.txt"), "w") as file:
-			file.write(contents)
-	except FileNotFoundError:
-		Error("Could not create CMakeLists.txt")
-	except OSError as ec:
-		Error(f"The host operating system rased error code {ec.errno}")
-		abort()
-	except:
-		abort()
-	
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-cmake_CMakeLists.txt_.txt"),
+		outPath=os.path.join(pth, "CMakeLists.txt")
+	)
 	src_path = create_src_dir(pth)
-	create_include_dir(pth)	
-	try:
-		with open(f"{TEMPLATE_DIR}/cpp-cmake_main.cpp_.txt", "r") as file:
-			contents = file.read()
-	except FileNotFoundError:
-		Error("Could not read the main.cpp template")
-		abort()
-	except OSError as ec:
-		Error(f"The host operating system raised error code {ec.errno}")
-		abort()
-	except Exception as e:
-		Error(f"Unexpected error reading main.cpp template: {e}")
-		abort()
-	Info("Creating main.cpp...")
-	try:
-		with open(os.path.join(src_path, "main.cpp"), "w") as file:
-
-			file.write(contents)
-
-			file.close()
-	except FileNotFoundError:
-		Error("Could not create main.cpp")
-	except OSError as ec:
-		Error(f"The host operating system rased error code {ec.errno}")
-		abort()
-	except:
-		abort()
-
+	create_include_dir(pth)
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-cmake_main.cpp_.txt"),
+		outPath=os.path.join(src_path, "main.cpp")
+	)
+	
 
 def main(args):
 	Info(f"Project name: {args.name}")
