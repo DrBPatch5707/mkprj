@@ -121,6 +121,30 @@ def cpp_cmake_profile(args):
 		outPath=os.path.join(src_path, "main.cpp")
 	)
 	
+def cpp_baremetal_grub_profile(args):
+	pth = os.path.join(os.path.abspath(args.path), args.name)
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-baremetal-grub_Makefile_.txt"),
+		outPath=os.path.join(pth, "Makefile")
+	)
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-baremetal-grub_linker.ld_.txt"),
+		outPath=os.path.join(pth, "linker.ld")
+	)
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-baremetal-grub_grub.cfg_.txt"),
+		outPath=os.path.join(pth, "grub.cfg")
+	)
+	src_path = create_src_dir(pth)
+	create_include_dir(pth)
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-baremetal-grub_multiboot2_header.S_.txt"),
+		outPath=os.path.join(src_path, "multiboot2_header.S")
+	)
+	copy_template(
+		inPath=os.path.join(TEMPLATE_DIR, "cpp-baremetal-grub_entry.cpp_.txt"),
+		outPath=os.path.join(src_path, "entry.cpp")
+	)
 
 def main(args):
 	Info(f"Project name: {args.name}")
@@ -165,5 +189,7 @@ def main(args):
 			cpp_profile(args)
 		case 'cpp-cmake':
 			cpp_cmake_profile(args)
+		case 'cpp-baremetal-grub':
+			cpp_baremetal_grub_profile(args)
 
 			

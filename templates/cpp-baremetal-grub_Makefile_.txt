@@ -1,0 +1,93 @@
+# =========================
+# Bare-metal C++ kernel (Multiboot2 + GRUB ISO)
+# =========================
+
+# ---- Toolchain (use a cross compiler!) ----
+ARCH        ?= i386
+CROSS       ?= i686-elf-
+
+CXX         := $(CROSS)g++
+CC          := $(CROSS)gcc
+AS          := $(CROSS)gcc
+LD          := $(CROSS)ld
+OBJCOPY     := $(CROSS)objcopy
+
+# ---- Project layout ----
+SRC_DIR     := src
+INC_DIR     := include
+BUILD_DIR   := build
+ISO_DIR     := $(BUILD_DIR)/isofiles
+
+KERNEL_ELF  := $(BUILD_DIR)/kernel.elf
+KERNEL_ISO  := $(BUILD_DIR)/kernel.iso
+
+# Linker script
+LDSCRIPT    := linker.ld
+
+# ---- Flags ----
+COMMON_WARN := -Wall -Wextra
+COMMON_INC  := -I$(INC_DIR)
+
+# Freestanding C/C++
+CFLAGS      := $(COMMON_WARN) $(COMMON_INC) -O2 -ffreestanding -fno-pic -fno-pie -fno-stack-protector
+CXXFLAGS    := $(CFLAGS) -std=c++20 -fno-exceptions -fno-rtti
+
+# Link flags: no host libs, use our linker script
+LDFLAGS     := -nostdlib -T $(LDSCRIPT) -z max-page-size=0x1000
+
+# Dependency generation flags (.d next to .o in build/)
+DEPFLAGS    = -MT $@ -MMD -MP -MF $(BUILD_DIR)/$*.d
+
+# ---- Sources ----
+CPP_SRCS    := $(wildcard $(SRC_DIR)/*.cpp)
+S_SRCS      := $(wildcard $(SRC_DIR)/*.S)
+
+CPP_OBJS    := $(CPP_SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+S_OBJS      := $(S_SRCS:$(SRC_DIR)/%.S=$(BUILD_DIR)/%.o)
+OBJS        := $(S_OBJS) $(CPP_OBJS)
+
+# Default target
+all: $(KERNEL_ELF)
+
+# Build kernel ELF
+# NOTE: $(LDSCRIPT) is a dependency (so relink when it changes),
+# but we DO NOT pass it as a positional input (avoid duplicate linker script error).
+$(KERNEL_ELF): $(OBJS) $(LDSCRIPT)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(OBJS) -o $@
+	@echo "Built: $@"
+	@echo "Tip: validate with: grub-file --is-x86-multiboot2 $(KERNEL_ELF)"
+
+# Compile C++
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(DEPFLAGS)
+
+# Assemble .S (GAS via gcc)
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.S | $(BUILD_DIR)
+	$(AS) $(CFLAGS) -c $< -o $@ $(DEPFLAGS)
+
+# Ensure build directory exists
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+# ---- ISO packaging ----
+iso: $(KERNEL_ISO)
+
+$(KERNEL_ISO): $(KERNEL_ELF) grub.cfg | $(BUILD_DIR)
+	mkdir -p $(ISO_DIR)/boot/grub
+	cp $(KERNEL_ELF) $(ISO_DIR)/boot/kernel.elf
+	cp grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
+	grub-mkrescue -o $(KERNEL_ISO) $(ISO_DIR)
+	@echo "Built: $(KERNEL_ISO)"
+
+# ---- Run in QEMU ----
+run: iso
+	qemu-system-i386 -cdrom  $(KERNEL_ISO) -m 256M -serial stdio
+
+# Clean
+clean:
+	rm -rf $(BUILD_DIR)
+
+.PHONY: all iso run clean
+
+# Include dependency files
+-include $(OBJS:.o=.d)

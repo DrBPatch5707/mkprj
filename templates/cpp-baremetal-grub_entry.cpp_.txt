@@ -1,0 +1,15 @@
+#include <stdint.h>
+
+extern "C" void entry() {
+    // Write "OK" to VGA text buffer (top-left).
+    volatile uint16_t* vga = (volatile uint16_t*)0xB8000;
+
+    // Attribute byte: light grey on black = 0x07
+    vga[0] = (uint16_t)(0x07 << 8) | 'O';
+    vga[1] = (uint16_t)(0x07 << 8) | 'K';
+
+    // Hang forever (assembly _start also halts, but this keeps kmain self-contained)
+    for (;;) {
+        asm volatile("hlt");
+    }
+}

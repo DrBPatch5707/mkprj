@@ -1,0 +1,30 @@
+ENTRY(_start)
+
+SECTIONS
+{
+  /* Load the kernel at 1 MiB */
+  . = 1M;
+
+  /* Multiboot2 header must be within the first 32 KiB of the image
+     and 8-byte aligned. Keeping it first is the easiest rule. */
+  .multiboot2 ALIGN(8) : {
+    KEEP(*(.multiboot2))
+  }
+
+  .text ALIGN(16) : {
+    *(.text*)
+  }
+
+  .rodata ALIGN(16) : {
+    *(.rodata*)
+  }
+
+  .data ALIGN(16) : {
+    *(.data*)
+  }
+
+  .bss ALIGN(16) : {
+    *(COMMON)
+    *(.bss*)
+  }
+}

@@ -1,0 +1,44 @@
+/* Multiboot2 header + minimal _start
+ *
+ * GAS syntax (because we assemble via gcc).
+ * This file provides:
+ *  - Multiboot2 header in section .multiboot2
+ *  - _start symbol (entrypoint) in .text
+ */
+
+.set MB2_MAGIC,      0xE85250D6
+.set MB2_ARCH_I386,  0
+.set MB2_HEADER_LEN, (mb2_header_end - mb2_header_start)
+
+.section .multiboot2
+.align 8
+mb2_header_start:
+  .long MB2_MAGIC
+  .long MB2_ARCH_I386
+  .long MB2_HEADER_LEN
+  .long -(MB2_MAGIC + MB2_ARCH_I386 + MB2_HEADER_LEN)
+
+  /* End tag (type=0, flags=0, size=8) */
+  .short 0
+  .short 0
+  .long 8
+
+mb2_header_end:
+
+.section .text
+.global _start
+.type _start, @function
+_start:
+  /* If you later want mb2 info:
+     On i386 Multiboot2, GRUB enters with:
+       EAX = 0x36d76289
+       EBX = pointer to multiboot2 info
+     We'll ignore it for now. */
+
+  call entry
+
+.hang:
+  cli
+  hlt
+  jmp .hang
+.size _start, . - _start

@@ -20,6 +20,7 @@ def create_parser():
 	profiles = {
 			'cpp',
 			"cpp-cmake",
+			"cpp-baremetal-grub",
 		}
 	parser.add_argument(
     "profile",
