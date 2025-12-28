@@ -21,6 +21,8 @@ def create_parser():
 			'cpp',
 			"cpp-cmake",
 			"cpp-baremetal-grub",
+			
+			"default"
 		}
 	parser.add_argument(
     "profile",

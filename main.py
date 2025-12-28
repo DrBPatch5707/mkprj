@@ -94,6 +94,16 @@ def copy_template(inPath, outPath):
 		Error(f"Unexpected error writing {outPath}: {e}")
 		abort()
 
+
+#Profiles---------------
+
+
+def default_profile(args):
+	pth = os.path.join(os.path.abspath(args.path), args.name)
+	create_src_dir(pth)
+
+
+
 def cpp_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
 	copy_template(
@@ -146,6 +156,12 @@ def cpp_baremetal_grub_profile(args):
 		outPath=os.path.join(src_path, "entry.cpp")
 	)
 
+
+
+
+
+
+#Main---------------
 def main(args):
 	Info(f"Project name: {args.name}")
 	path = os.path.join(os.path.abspath(args.path), args.name)
@@ -191,5 +207,7 @@ def main(args):
 			cpp_cmake_profile(args)
 		case 'cpp-baremetal-grub':
 			cpp_baremetal_grub_profile(args)
+		case 'default':
+			default_profile(args)
 
 			
