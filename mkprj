@@ -21,6 +21,7 @@ def create_parser():
 			'cpp',
 			"cpp-cmake",
 			"cpp-baremetal-grub",
+			"rust",
 			
 			"default"
 		}

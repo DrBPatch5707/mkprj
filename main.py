@@ -58,14 +58,16 @@ def create_src_dir(pth):
 		abort()
 	return src_path
 
-def init_git(path):
-	try:
-		result = subprocess.run(["git", "init", path], capture_output=True, text=True, check=True)
-		Info("")
-		print(result.stdout)
-		print(result.stderr)
-	except subprocess.CalledProcessError as e:
-		Error(f"Git initalization of repo {path} failed do to error code {e.returncode}")
+def init_git(args):
+	path = os.path.join(os.path.abspath(args.path), args.name)
+	if not args.no_git:	
+		try:
+			result = subprocess.run(["git", "init", path], capture_output=True, text=True, check=True)
+			Info("")
+			print(result.stdout)
+			print(result.stderr)
+		except subprocess.CalledProcessError as e:
+			Error(f"Git initalization of repo {path} failed do to error code {e.returncode}")
 
 def copy_template(inPath, outPath):
 	try:
@@ -94,18 +96,60 @@ def copy_template(inPath, outPath):
 		Error(f"Unexpected error writing {outPath}: {e}")
 		abort()
 
+def create_project_dir(path):
+	try:
+		if os.path.isfile(path):
+			Error("Directory can not be a file")
+			abort()
+		if os.path.exists(path):
+			Error("Directory already exist")
+			abort()
+		Info(f"Creating directory {path}")
+		os.makedirs(path)
+	except FileExistsError:
+		Error(f"{path} already exists")
+		abort()
+	except FileNotFoundError:
+		parent = os.path.dirname(path)
+		Error(f"Parent directory does not exist: {parent}")
+		abort()
+	except OSError as ec:
+		Error(f"The host operating system has returned error code {ec.errno}")
+		abort()
+	except:
+		abort()
+
+	if not os.path.isdir(path):
+		Error("Could not create directory")
+		abort()
 
 #Profiles---------------
 
 
 def default_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
+	create_project_dir(pth)
+	init_git(args)
 	create_src_dir(pth)
 
 
 
+def rust_profile(args):
+	path = os.path.join(os.path.abspath(args.path), args.name)
+	try:
+		result = subprocess.run(["cargo", "new", path], capture_output=True, text=True, check=True)
+		Info("")
+		print(result.stdout)
+		print(result.stderr)
+	except subprocess.CalledProcessError as e:
+		Error(f"Cargo initalization of {path} failed do to error code {e.returncode}")
+	init_git(args)
+	#More later
+
 def cpp_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
+	create_project_dir(pth)
+	init_git(args)
 	copy_template(
 		inPath=os.path.join(TEMPLATE_DIR, "cpp_Makefile_.txt"),
 		outPath=os.path.join(pth, "Makefile")
@@ -120,6 +164,8 @@ def cpp_profile(args):
 
 def cpp_cmake_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
+	create_project_dir(pth)
+	init_git(args)
 	copy_template(
 		inPath=os.path.join(TEMPLATE_DIR, "cpp-cmake_CMakeLists.txt_.txt"),
 		outPath=os.path.join(pth, "CMakeLists.txt")
@@ -133,6 +179,8 @@ def cpp_cmake_profile(args):
 	
 def cpp_baremetal_grub_profile(args):
 	pth = os.path.join(os.path.abspath(args.path), args.name)
+	create_project_dir(pth)
+	init_git(args)
 	copy_template(
 		inPath=os.path.join(TEMPLATE_DIR, "cpp-baremetal-grub_Makefile_.txt"),
 		outPath=os.path.join(pth, "Makefile")
@@ -166,40 +214,7 @@ def main(args):
 	Info(f"Project name: {args.name}")
 	path = os.path.join(os.path.abspath(args.path), args.name)
 	Info(f"Path: {path}")
-	try:
-		if os.path.isfile(path):
-			Error("Directory can not be a file")
-			abort()
-		if os.path.exists(path):
-			Error("Directory already exist")
-			abort()
-		Info(f"Creating directory {path}")
-		os.makedirs(path)
-	except FileExistsError:
-		Error(f"{path} already exists")
-		abort()
-	except FileNotFoundError:
-		parent = os.path.dirname(path)
-		Error(f"Parent directory does not exist: {parent}")
-		abort()
-	except OSError as ec:
-		Error(f"The host operating system has returned error code {ec.errno}")
-		abort()
-	except:
-		abort()
-
-	if not os.path.isdir(path):
-		Error("Could not create directory")
-		abort()
-	
-	if not args.no_git:	
-		if not os.path.exists(os.path.join(path, ".git")):
-			init_git(path)
-		else:
-			Warn("Git repo exist before initialization; Continuing...")
-	
-
-	Info(f"Using profile {args.profile}")
+	Info(f"Using {args.profile} profile")	
 	match args.profile:
 		case 'cpp':
 			cpp_profile(args)
@@ -207,7 +222,7 @@ def main(args):
 			cpp_cmake_profile(args)
 		case 'cpp-baremetal-grub':
 			cpp_baremetal_grub_profile(args)
+		case 'rust':
+			rust_profile(args)
 		case 'default':
 			default_profile(args)
-
-			
