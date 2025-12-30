@@ -48,6 +48,7 @@ Create a C++ project with CMake in a specific path without Git:
 - `cpp`: C++ project with Makefile, `src/` and `include/` directories, and a basic `main.cpp`.
 - `cpp-cmake`: C++ project with CMake, similar structure but using CMakeLists.txt.
 - `cpp-baremetal-grub`: Bare metal C++ application that uses the GRUB bootloader with Multiboot2.
+- `rust` : Default profile for rust projects.
 - I intend to add more later
 
 
